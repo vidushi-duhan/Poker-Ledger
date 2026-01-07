@@ -253,6 +253,46 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/games/:id", async (req, res) => {
+    try {
+      const gameId = req.params.id;
+
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      // Only allow deleting completed games (not active ones)
+      if (game.status === "active") {
+        return res.status(400).json({ error: "Cannot delete an active game. Cancel it first." });
+      }
+
+      // If game was completed, reverse the ledger balances
+      if (game.status === "completed") {
+        const gamePlayers = await storage.getGamePlayers(gameId);
+        
+        for (const gp of gamePlayers) {
+          if (gp.netResult !== null) {
+            // Reverse the balance change
+            await storage.updatePlayerBalance(gp.playerId, -gp.netResult, false);
+            // Decrement games played count
+            await storage.decrementPlayerGamesPlayed(gp.playerId);
+          }
+        }
+      }
+
+      // Delete all related data in order (settlements, game players, then game)
+      await storage.deleteSettlementsByGame(gameId);
+      await storage.deleteGamePlayers(gameId);
+      await storage.deleteGame(gameId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      res.status(500).json({ error: "Failed to delete game" });
+    }
+  });
+
   // Game Players API
   app.post("/api/game-players", async (req, res) => {
     try {

@@ -15,6 +15,7 @@ export interface IStorage {
   getPlayer(id: string): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayerBalance(id: string, balanceChange: number, incrementGames?: boolean): Promise<Player | undefined>;
+  decrementPlayerGamesPlayed(id: string): Promise<Player | undefined>;
 
   // Games
   getAllGames(): Promise<GameWithPlayers[]>;
@@ -36,6 +37,10 @@ export interface IStorage {
   getSettlementsByGame(gameId: string): Promise<SettlementWithPlayers[]>;
   createSettlement(settlement: InsertSettlement): Promise<Settlement>;
   deleteSettlementsByGame(gameId: string): Promise<void>;
+
+  // Delete game and all related data
+  deleteGame(gameId: string): Promise<void>;
+  deleteGamePlayers(gameId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -63,6 +68,20 @@ export class DatabaseStorage implements IStorage {
       .set({
         totalBalance: player.totalBalance + balanceChange,
         gamesPlayed: incrementGames ? player.gamesPlayed + 1 : player.gamesPlayed,
+      })
+      .where(eq(players.id, id))
+      .returning();
+    return updated;
+  }
+
+  async decrementPlayerGamesPlayed(id: string): Promise<Player | undefined> {
+    const player = await this.getPlayer(id);
+    if (!player) return undefined;
+
+    const [updated] = await db
+      .update(players)
+      .set({
+        gamesPlayed: Math.max(0, player.gamesPlayed - 1),
       })
       .where(eq(players.id, id))
       .returning();
@@ -213,6 +232,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSettlementsByGame(gameId: string): Promise<void> {
     await db.delete(settlements).where(eq(settlements.gameId, gameId));
+  }
+
+  async deleteGamePlayers(gameId: string): Promise<void> {
+    await db.delete(gamePlayers).where(eq(gamePlayers.gameId, gameId));
+  }
+
+  async deleteGame(gameId: string): Promise<void> {
+    await db.delete(games).where(eq(games.id, gameId));
   }
 }
 
