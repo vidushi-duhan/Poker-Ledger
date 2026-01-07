@@ -22,6 +22,7 @@ export const games = pgTable("games", {
   defaultBuyIn: integer("default_buy_in").notNull().default(500),
   status: text("status").notNull().default("active"), // 'active' | 'settling' | 'completed'
   totalPot: integer("total_pot").notNull().default(0),
+  completedAt: timestamp("completed_at"), // When the game was completed
 });
 
 export const gamesRelations = relations(games, ({ many }) => ({

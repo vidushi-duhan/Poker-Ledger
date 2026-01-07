@@ -117,7 +117,7 @@ export class DatabaseStorage implements IStorage {
   async completeGame(id: string, totalPot: number): Promise<Game | undefined> {
     const [game] = await db
       .update(games)
-      .set({ status: "completed", totalPot })
+      .set({ status: "completed", totalPot, completedAt: new Date() })
       .where(eq(games.id, id))
       .returning();
     return game;

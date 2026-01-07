@@ -3,10 +3,14 @@ import type { Player } from "@shared/schema";
 interface LedgerRowProps {
   player: Player;
   rank: number;
+  balance?: number;
+  gamesPlayed?: number;
 }
 
-export function LedgerRow({ player, rank }: LedgerRowProps) {
-  const isPositive = player.totalBalance >= 0;
+export function LedgerRow({ player, rank, balance, gamesPlayed }: LedgerRowProps) {
+  const displayBalance = balance ?? player.totalBalance;
+  const displayGames = gamesPlayed ?? player.gamesPlayed;
+  const isPositive = displayBalance >= 0;
   
   return (
     <div 
@@ -28,7 +32,7 @@ export function LedgerRow({ player, rank }: LedgerRowProps) {
             {player.name}
           </p>
           <p className="text-sm text-muted-foreground">
-            {player.gamesPlayed} game{player.gamesPlayed !== 1 ? "s" : ""} played
+            {displayGames} game{displayGames !== 1 ? "s" : ""} played
           </p>
         </div>
       </div>
@@ -40,7 +44,7 @@ export function LedgerRow({ player, rank }: LedgerRowProps) {
           }`}
           data-testid={`ledger-balance-${player.id}`}
         >
-          {isPositive ? "+" : ""}₹{player.totalBalance.toLocaleString('en-IN')}
+          {isPositive ? "+" : ""}₹{displayBalance.toLocaleString('en-IN')}
         </p>
       </div>
     </div>
