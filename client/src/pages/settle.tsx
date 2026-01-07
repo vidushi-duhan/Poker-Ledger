@@ -173,7 +173,7 @@ export default function SettlePage() {
       <div>
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Settlement</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter the final amount each player has
+          Enter the ending amount each player has
         </p>
       </div>
 
@@ -186,7 +186,7 @@ export default function SettlePage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Final Total</p>
+            <p className="text-sm text-muted-foreground">Ending Total</p>
             <p 
               className={`text-xl font-semibold ${isBalanced ? "text-chart-1" : "text-destructive"}`}
               data-testid="text-final-total"
@@ -211,7 +211,7 @@ export default function SettlePage() {
 
       <Card>
         <div className="p-4 border-b border-border">
-          <p className="text-sm font-medium text-muted-foreground">Enter Final Amounts</p>
+          <p className="text-sm font-medium text-muted-foreground">Enter Ending Amounts</p>
         </div>
         {activeGame.gamePlayers.map((gp) => (
           <AmountInput
