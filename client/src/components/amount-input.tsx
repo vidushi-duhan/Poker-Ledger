@@ -37,7 +37,7 @@ export function AmountInput({
           id={`amount-${playerId}`}
           type="number"
           inputMode="numeric"
-          placeholder="Final amount"
+          placeholder="Ending amount"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-12 text-lg text-right pl-8 pr-4"
