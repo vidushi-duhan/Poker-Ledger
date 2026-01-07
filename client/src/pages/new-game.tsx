@@ -28,7 +28,7 @@ export default function NewGamePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/games/active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
       toast({ title: "Game started successfully!" });
-      navigate("/");
+      navigate("/game");
     },
     onError: () => {
       toast({ title: "Failed to start game", variant: "destructive" });
@@ -71,7 +71,7 @@ export default function NewGamePage() {
             <Button
               variant="outline"
               className="w-full h-12"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/game")}
               data-testid="button-go-to-active"
             >
               Go to Active Game

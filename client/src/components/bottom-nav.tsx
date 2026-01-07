@@ -1,11 +1,11 @@
 import { useLocation, Link } from "wouter";
-import { Gamepad2, BookOpen, Clock, Plus } from "lucide-react";
+import { Home, Gamepad2, BookOpen, Clock, Plus } from "lucide-react";
 
 const navItems = [
-  { path: "/", label: "Active Game", icon: Gamepad2 },
+  { path: "/", label: "Home", icon: Home },
+  { path: "/game", label: "Game", icon: Gamepad2 },
   { path: "/ledger", label: "Ledger", icon: BookOpen },
   { path: "/history", label: "History", icon: Clock },
-  { path: "/new-game", label: "New Game", icon: Plus },
 ];
 
 export function BottomNav() {
