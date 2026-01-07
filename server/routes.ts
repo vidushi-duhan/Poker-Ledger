@@ -228,6 +228,31 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/games/:id/cancel", async (req, res) => {
+    try {
+      const gameId = req.params.id;
+
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      if (game.status === "completed") {
+        return res.status(400).json({ error: "Cannot cancel a completed game" });
+      }
+
+      if (game.status === "cancelled") {
+        return res.status(400).json({ error: "Game already cancelled" });
+      }
+
+      await storage.cancelGame(gameId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error cancelling game:", error);
+      res.status(500).json({ error: "Failed to cancel game" });
+    }
+  });
+
   // Game Players API
   app.post("/api/game-players", async (req, res) => {
     try {

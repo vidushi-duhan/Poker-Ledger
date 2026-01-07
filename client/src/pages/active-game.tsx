@@ -5,10 +5,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { PlayerRow } from "@/components/player-row";
 import { AddPlayerDialog } from "@/components/add-player-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { Gamepad2, Calculator, Users } from "lucide-react";
+import { Gamepad2, Calculator, Users, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -63,6 +74,20 @@ export default function ActiveGamePage() {
     },
     onError: () => {
       toast({ title: "Failed to update buy-in", variant: "destructive" });
+    },
+  });
+
+  const cancelGameMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      return apiRequest("POST", `/api/games/${gameId}/cancel`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/games/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      toast({ title: "Game cancelled" });
+    },
+    onError: () => {
+      toast({ title: "Failed to cancel game", variant: "destructive" });
     },
   });
 
@@ -220,6 +245,37 @@ export default function ActiveGamePage() {
           End Game & Calculate Settlement
         </Button>
       )}
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full"
+            data-testid="button-cancel-game"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Cancel Game
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this game?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will abandon the current game. No amounts will be added to anyone's ledger. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-dialog-cancel">Keep Playing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelGameMutation.mutate(activeGame.id)}
+              disabled={cancelGameMutation.isPending}
+              data-testid="button-cancel-dialog-confirm"
+            >
+              {cancelGameMutation.isPending ? "Cancelling..." : "Cancel Game"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

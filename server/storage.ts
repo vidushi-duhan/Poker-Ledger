@@ -23,6 +23,7 @@ export interface IStorage {
   createGame(game: InsertGame): Promise<Game>;
   updateGameStatus(id: string, status: string): Promise<Game | undefined>;
   completeGame(id: string, totalPot: number): Promise<Game | undefined>;
+  cancelGame(id: string): Promise<Game | undefined>;
 
   // Game Players
   getGamePlayers(gameId: string): Promise<GamePlayerWithPlayer[]>;
@@ -118,6 +119,15 @@ export class DatabaseStorage implements IStorage {
     const [game] = await db
       .update(games)
       .set({ status: "completed", totalPot, completedAt: new Date() })
+      .where(eq(games.id, id))
+      .returning();
+    return game;
+  }
+
+  async cancelGame(id: string): Promise<Game | undefined> {
+    const [game] = await db
+      .update(games)
+      .set({ status: "cancelled" })
       .where(eq(games.id, id))
       .returning();
     return game;
