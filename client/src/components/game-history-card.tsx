@@ -70,6 +70,9 @@ export function GameHistoryCard({ game, settlements }: GameHistoryCardProps) {
             </p>
             <p className="text-sm text-muted-foreground">
               {format(new Date(game.date), "h:mm a")}
+              {game.completedAt && (
+                <span> - {format(new Date(game.completedAt), "h:mm a")}</span>
+              )}
             </p>
           </div>
           <Badge variant={game.status === "completed" ? "secondary" : "default"} className="text-xs">
