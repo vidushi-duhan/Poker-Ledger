@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -176,17 +177,30 @@ export default function ActiveGamePage() {
       />
 
       {activeGame.gamePlayers.length > 0 ? (
-        <Card>
-          {activeGame.gamePlayers.map((gamePlayer) => (
-            <PlayerRow
-              key={gamePlayer.id}
-              gamePlayer={gamePlayer}
-              defaultBuyIn={activeGame.defaultBuyIn}
-              onAddBuyIn={handleAddBuyIn}
-              onRemoveBuyIn={handleRemoveBuyIn}
-              onRemovePlayer={handleRemovePlayer}
-            />
-          ))}
+        <Card className="overflow-hidden">
+          <AnimatePresence mode="popLayout">
+            {activeGame.gamePlayers.map((gamePlayer) => (
+              <motion.div
+                key={gamePlayer.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ 
+                  layout: { type: "spring", stiffness: 500, damping: 35 },
+                  opacity: { duration: 0.2 }
+                }}
+              >
+                <PlayerRow
+                  gamePlayer={gamePlayer}
+                  defaultBuyIn={activeGame.defaultBuyIn}
+                  onAddBuyIn={handleAddBuyIn}
+                  onRemoveBuyIn={handleRemoveBuyIn}
+                  onRemovePlayer={handleRemovePlayer}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </Card>
       ) : (
         <Card className="p-6">
