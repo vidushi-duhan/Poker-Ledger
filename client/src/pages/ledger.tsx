@@ -6,13 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LedgerRow } from "@/components/ledger-row";
 import { EmptyState } from "@/components/empty-state";
 import { BookOpen, TrendingUp, TrendingDown, Users, Calendar } from "lucide-react";
-import { startOfWeek, startOfMonth, isBefore } from "date-fns";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, format, isBefore, isAfter } from "date-fns";
 import type { Player, GameWithPlayers } from "@shared/schema";
 
-type TimePeriod = "all" | "week" | "month";
+interface FilterOption {
+  value: string;
+  label: string;
+  startDate?: Date;
+  endDate?: Date;
+}
 
 export default function LedgerPage() {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("all");
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
   const { data: players = [], isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
@@ -24,8 +29,52 @@ export default function LedgerPage() {
 
   const isLoading = playersLoading || gamesLoading;
 
+  const filterOptions = useMemo<FilterOption[]>(() => {
+    const now = new Date();
+    const options: FilterOption[] = [
+      { value: "all", label: "All Time" },
+      { value: "this-week", label: "This Week", startDate: startOfWeek(now, { weekStartsOn: 1 }) },
+      { value: "last-week", label: "Last Week", startDate: startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 }), endDate: endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 }) },
+    ];
+
+    const completedGames = games.filter(g => g.status === "completed" && g.completedAt);
+    
+    if (completedGames.length > 0) {
+      const monthsWithGames = new Set<string>();
+      
+      completedGames.forEach(game => {
+        if (game.completedAt) {
+          const completedDate = new Date(game.completedAt);
+          const monthKey = format(completedDate, "yyyy-MM");
+          monthsWithGames.add(monthKey);
+        }
+      });
+
+      const sortedMonths = Array.from(monthsWithGames).sort().reverse();
+
+      sortedMonths.forEach(monthKey => {
+        const [year, month] = monthKey.split("-");
+        const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const monthStart = startOfMonth(monthDate);
+        const monthEnd = endOfMonth(monthDate);
+        const label = format(monthDate, "MMMM yyyy");
+        
+        options.push({
+          value: `month-${monthKey}`,
+          label,
+          startDate: monthStart,
+          endDate: monthEnd,
+        });
+      });
+    }
+
+    return options;
+  }, [games]);
+
+  const currentFilter = filterOptions.find(f => f.value === selectedFilter) || filterOptions[0];
+
   const filteredStats = useMemo(() => {
-    if (timePeriod === "all") {
+    if (selectedFilter === "all") {
       return players.map(p => ({
         ...p,
         filteredBalance: p.totalBalance,
@@ -33,15 +82,23 @@ export default function LedgerPage() {
       }));
     }
 
-    const now = new Date();
-    const periodStart = timePeriod === "week" 
-      ? startOfWeek(now, { weekStartsOn: 1 }) 
-      : startOfMonth(now);
+    const filter = filterOptions.find(f => f.value === selectedFilter);
+    if (!filter || !filter.startDate) {
+      return players.map(p => ({
+        ...p,
+        filteredBalance: p.totalBalance,
+        filteredGamesPlayed: p.gamesPlayed,
+      }));
+    }
 
     const completedGamesInPeriod = games.filter(g => {
       if (g.status !== "completed" || !g.completedAt) return false;
       const completedDate = new Date(g.completedAt);
-      return !isBefore(completedDate, periodStart);
+      
+      const afterStart = !isBefore(completedDate, filter.startDate!);
+      const beforeEnd = filter.endDate ? !isAfter(completedDate, filter.endDate) : true;
+      
+      return afterStart && beforeEnd;
     });
 
     const playerStats = new Map<string, { balance: number; gamesPlayed: number }>();
@@ -69,7 +126,7 @@ export default function LedgerPage() {
         filteredGamesPlayed: stats.gamesPlayed,
       };
     });
-  }, [players, games, timePeriod]);
+  }, [players, games, selectedFilter, filterOptions]);
 
   const sortedPlayers = [...filteredStats].sort((a, b) => b.filteredBalance - a.filteredBalance);
   
@@ -80,8 +137,6 @@ export default function LedgerPage() {
   const totalNegative = filteredStats
     .filter(p => p.filteredBalance < 0)
     .reduce((sum, p) => sum + Math.abs(p.filteredBalance), 0);
-
-  const periodLabel = timePeriod === "all" ? "All Time" : timePeriod === "week" ? "This Week" : "This Month";
 
   if (isLoading) {
     return (
@@ -115,15 +170,17 @@ export default function LedgerPage() {
     <div className="px-4 py-6 space-y-6 pb-24 max-w-2xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Player Ledger</h1>
-        <Select value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
-          <SelectTrigger className="w-[140px]" data-testid="select-time-period">
+        <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-time-period">
             <Calendar className="w-4 h-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Time</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
+            {filterOptions.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -160,9 +217,9 @@ export default function LedgerPage() {
         </Card>
       </div>
 
-      {timePeriod !== "all" && (
+      {selectedFilter !== "all" && (
         <p className="text-sm text-muted-foreground">
-          Showing results for {periodLabel.toLowerCase()}
+          Showing results for {currentFilter.label.toLowerCase()}
         </p>
       )}
 
