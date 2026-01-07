@@ -77,6 +77,11 @@ export async function registerRoutes(
         finalAmounts: { playerId: string; finalAmount: number }[] 
       };
 
+      // Validate finalAmounts is an array
+      if (!Array.isArray(finalAmounts)) {
+        return res.status(400).json({ error: "finalAmounts must be an array" });
+      }
+
       const game = await storage.getGame(gameId);
       if (!game) {
         return res.status(404).json({ error: "Game not found" });
@@ -88,14 +93,43 @@ export async function registerRoutes(
 
       const gamePlayers = await storage.getGamePlayers(gameId);
 
-      // Validate and coerce numeric inputs
+      // Validate request: check for duplicates and count match
+      const playerIdsInRequest = finalAmounts.map(fa => fa.playerId);
+      const uniquePlayerIds = new Set(playerIdsInRequest);
+      
+      if (uniquePlayerIds.size !== playerIdsInRequest.length) {
+        return res.status(400).json({ 
+          error: "Duplicate player entries in final amounts" 
+        });
+      }
+      
+      if (finalAmounts.length !== gamePlayers.length) {
+        return res.status(400).json({ 
+          error: "Final amounts count must match number of players in game",
+          expected: gamePlayers.length,
+          received: finalAmounts.length
+        });
+      }
+      
+      // Validate and coerce numeric inputs for ALL players
       const validatedAmounts: { playerId: string; finalAmount: number }[] = [];
-      for (const fa of finalAmounts) {
-        const amount = parseInt(String(fa.finalAmount), 10);
-        if (isNaN(amount)) {
-          return res.status(400).json({ error: `Invalid amount for player ${fa.playerId}` });
+      
+      // Require all players in the game to have final amounts
+      for (const gp of gamePlayers) {
+        const fa = finalAmounts.find(a => a.playerId === gp.playerId);
+        if (!fa) {
+          return res.status(400).json({ 
+            error: `Missing final amount for player ${gp.player.name}` 
+          });
         }
-        validatedAmounts.push({ playerId: fa.playerId, finalAmount: amount });
+        // Use Number for proper numeric coercion (preserves decimals)
+        const amount = Number(fa.finalAmount);
+        if (!Number.isFinite(amount)) {
+          return res.status(400).json({ 
+            error: `Invalid amount for player ${gp.player.name}` 
+          });
+        }
+        validatedAmounts.push({ playerId: gp.playerId, finalAmount: amount });
       }
 
       // Calculate total buy-ins and final amounts to verify balance
@@ -184,8 +218,8 @@ export async function registerRoutes(
         if (winner.remaining === 0) winnerIdx++;
       }
 
-      // Update game status to completed
-      await storage.updateGameStatus(gameId, "completed");
+      // Complete game with total pot
+      await storage.completeGame(gameId, totalBuyIns);
 
       res.json({ success: true });
     } catch (error) {
