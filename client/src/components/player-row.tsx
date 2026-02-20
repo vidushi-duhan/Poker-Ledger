@@ -13,12 +13,13 @@ interface PlayerRowProps {
 export function PlayerRow({
   gamePlayer,
   defaultBuyIn,
+  chipsPerBuyIn,
   onAddBuyIn,
   onRemoveBuyIn,
   onRemovePlayer,
-}: PlayerRowProps) {
+}: PlayerRowProps & { chipsPerBuyIn: number }) {
   const totalBuyIn = gamePlayer.buyInCount * defaultBuyIn;
-  const totalChips = gamePlayer.buyInCount * (gamePlayer as any).game.chipsPerBuyIn;
+  const totalChips = gamePlayer.buyInCount * chipsPerBuyIn;
 
   return (
     <div 

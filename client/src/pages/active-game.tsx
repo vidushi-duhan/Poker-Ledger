@@ -219,6 +219,7 @@ export default function ActiveGamePage() {
                 <PlayerRow
                   gamePlayer={gamePlayer}
                   defaultBuyIn={activeGame.defaultBuyIn}
+                  chipsPerBuyIn={activeGame.chipsPerBuyIn}
                   onAddBuyIn={handleAddBuyIn}
                   onRemoveBuyIn={handleRemoveBuyIn}
                   onRemovePlayer={handleRemovePlayer}
