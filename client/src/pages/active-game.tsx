@@ -179,9 +179,9 @@ export default function ActiveGamePage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Buy-in Amount</p>
+            <p className="text-sm text-muted-foreground">Buy-in Rate</p>
             <p className="text-lg font-medium" data-testid="text-buy-in-amount">
-              <span className="opacity-70">₹</span>{activeGame.defaultBuyIn.toLocaleString('en-IN')}
+              ₹{activeGame.defaultBuyIn} = {activeGame.chipsPerBuyIn} chips
             </p>
           </div>
         </div>

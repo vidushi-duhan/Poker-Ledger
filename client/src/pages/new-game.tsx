@@ -15,14 +15,15 @@ export default function NewGamePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [buyInAmount, setBuyInAmount] = useState("500");
+  const [chipsAmount, setChipsAmount] = useState("2000");
 
   const { data: activeGame, isLoading } = useQuery<Game | null>({
     queryKey: ["/api/games/active"],
   });
 
   const createGameMutation = useMutation({
-    mutationFn: async (defaultBuyIn: number) => {
-      return apiRequest("POST", "/api/games", { defaultBuyIn });
+    mutationFn: async (data: { defaultBuyIn: number; chipsPerBuyIn: number }) => {
+      return apiRequest("POST", "/api/games", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games/active"] });
@@ -38,8 +39,9 @@ export default function NewGamePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseInt(buyInAmount, 10);
-    if (amount > 0) {
-      createGameMutation.mutate(amount);
+    const chips = parseInt(chipsAmount, 10);
+    if (amount > 0 && chips > 0) {
+      createGameMutation.mutate({ defaultBuyIn: amount, chipsPerBuyIn: chips });
     }
   };
 
@@ -110,6 +112,29 @@ export default function NewGamePage() {
                 min="1"
                 required
                 data-testid="input-buy-in-amount"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="chipsAmount" className="text-base">
+              Chips per Buy-in
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Number of chips given for each buy-in (e.g., 2000 chips for ₹500)
+            </p>
+            <div className="relative mt-3">
+              <Input
+                id="chipsAmount"
+                type="number"
+                inputMode="numeric"
+                placeholder="2000"
+                value={chipsAmount}
+                onChange={(e) => setChipsAmount(e.target.value)}
+                className="h-14 text-xl px-4"
+                min="1"
+                required
+                data-testid="input-chips-amount"
               />
             </div>
           </div>

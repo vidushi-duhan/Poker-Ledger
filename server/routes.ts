@@ -57,7 +57,11 @@ export async function registerRoutes(
 
   app.post("/api/games", async (req, res) => {
     try {
-      const parsed = insertGameSchema.parse(req.body);
+      const parsed = z.object({
+        defaultBuyIn: z.number().int().positive(),
+        chipsPerBuyIn: z.number().int().positive(),
+      }).parse(req.body);
+      
       const game = await storage.createGame(parsed);
       res.status(201).json(game);
     } catch (error) {
@@ -73,13 +77,13 @@ export async function registerRoutes(
   app.post("/api/games/:id/complete", async (req, res) => {
     try {
       const gameId = req.params.id;
-      const { finalAmounts } = req.body as { 
-        finalAmounts: { playerId: string; finalAmount: number }[] 
+      const { finalChips } = req.body as { 
+        finalChips: { playerId: string; chips: number }[] 
       };
 
-      // Validate finalAmounts is an array
-      if (!Array.isArray(finalAmounts)) {
-        return res.status(400).json({ error: "finalAmounts must be an array" });
+      // Validate finalChips is an array
+      if (!Array.isArray(finalChips)) {
+        return res.status(400).json({ error: "finalChips must be an array" });
       }
 
       const game = await storage.getGame(gameId);
@@ -92,44 +96,45 @@ export async function registerRoutes(
       }
 
       const gamePlayers = await storage.getGamePlayers(gameId);
+      const conversionRatio = game.chipsPerBuyIn / game.defaultBuyIn;
 
       // Validate request: check for duplicates and count match
-      const playerIdsInRequest = finalAmounts.map(fa => fa.playerId);
+      const playerIdsInRequest = finalChips.map(fc => fc.playerId);
       const uniquePlayerIds = new Set(playerIdsInRequest);
       
       if (uniquePlayerIds.size !== playerIdsInRequest.length) {
         return res.status(400).json({ 
-          error: "Duplicate player entries in final amounts" 
+          error: "Duplicate player entries in final chips" 
         });
       }
       
-      if (finalAmounts.length !== gamePlayers.length) {
+      if (finalChips.length !== gamePlayers.length) {
         return res.status(400).json({ 
-          error: "Final amounts count must match number of players in game",
+          error: "Final chips count must match number of players in game",
           expected: gamePlayers.length,
-          received: finalAmounts.length
+          received: finalChips.length
         });
       }
       
-      // Validate and coerce numeric inputs for ALL players
-      const validatedAmounts: { playerId: string; finalAmount: number }[] = [];
+      // Validate and calculate monetary values
+      const validatedData: { playerId: string; chips: number; amount: number }[] = [];
       
-      // Require all players in the game to have final amounts
       for (const gp of gamePlayers) {
-        const fa = finalAmounts.find(a => a.playerId === gp.playerId);
-        if (!fa) {
+        const fc = finalChips.find(c => c.playerId === gp.playerId);
+        if (!fc) {
           return res.status(400).json({ 
-            error: `Missing final amount for player ${gp.player.name}` 
+            error: `Missing final chips for player ${gp.player.name}` 
           });
         }
-        // Use Number for proper numeric coercion (preserves decimals)
-        const amount = Number(fa.finalAmount);
-        if (!Number.isFinite(amount)) {
+        const chips = Number(fc.chips);
+        if (!Number.isFinite(chips)) {
           return res.status(400).json({ 
-            error: `Invalid amount for player ${gp.player.name}` 
+            error: `Invalid chips for player ${gp.player.name}` 
           });
         }
-        validatedAmounts.push({ playerId: gp.playerId, finalAmount: amount });
+        // Calculate monetary value based on ratio
+        const amount = chips / conversionRatio;
+        validatedData.push({ playerId: gp.playerId, chips, amount });
       }
 
       // Calculate total buy-ins and final amounts to verify balance
@@ -138,13 +143,15 @@ export async function registerRoutes(
 
       for (const gp of gamePlayers) {
         totalBuyIns += gp.buyInCount * game.defaultBuyIn;
-        const fa = validatedAmounts.find(a => a.playerId === gp.playerId);
-        if (fa) {
-          totalFinalAmounts += fa.finalAmount;
+        const vd = validatedData.find(d => d.playerId === gp.playerId);
+        if (vd) {
+          totalFinalAmounts += vd.amount;
         }
       }
 
-      if (totalBuyIns !== totalFinalAmounts) {
+      // Using a small epsilon for floating point comparison if needed, 
+      // but since we're dealing with money, we should be careful.
+      if (Math.abs(totalBuyIns - totalFinalAmounts) > 0.01) {
         return res.status(400).json({ 
           error: "Totals don't balance", 
           totalBuyIns, 
@@ -159,25 +166,26 @@ export async function registerRoutes(
       // Calculate net results and update game players
       const playerBalances: { playerId: string; playerName: string; netResult: number }[] = [];
 
-      for (const fa of validatedAmounts) {
-        const gp = gamePlayers.find(g => g.playerId === fa.playerId);
+      for (const vd of validatedData) {
+        const gp = gamePlayers.find(g => g.playerId === vd.playerId);
         if (gp) {
           const totalBuyIn = gp.buyInCount * game.defaultBuyIn;
-          const netResult = fa.finalAmount - totalBuyIn;
+          const netResult = vd.amount - totalBuyIn;
 
           // Update game player with final amount and net result
           await storage.updateGamePlayer(gp.id, {
-            finalAmount: fa.finalAmount,
-            netResult: netResult,
+            finalChips: vd.chips,
+            finalAmount: Math.round(vd.amount),
+            netResult: Math.round(netResult),
           });
 
           // Update player's total balance
-          await storage.updatePlayerBalance(fa.playerId, netResult, true);
+          await storage.updatePlayerBalance(vd.playerId, Math.round(netResult), true);
 
           playerBalances.push({
-            playerId: fa.playerId,
+            playerId: vd.playerId,
             playerName: gp.player.name,
-            netResult,
+            netResult: Math.round(netResult),
           });
         }
       }

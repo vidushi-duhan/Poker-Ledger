@@ -18,6 +18,7 @@ export function PlayerRow({
   onRemovePlayer,
 }: PlayerRowProps) {
   const totalBuyIn = gamePlayer.buyInCount * defaultBuyIn;
+  const totalChips = gamePlayer.buyInCount * (gamePlayer as any).game.chipsPerBuyIn;
 
   return (
     <div 
@@ -29,7 +30,7 @@ export function PlayerRow({
           {gamePlayer.player.name}
         </p>
         <p className="text-sm text-muted-foreground">
-          <span className="opacity-70">₹</span>{totalBuyIn.toLocaleString('en-IN')} total
+          ₹{totalBuyIn.toLocaleString('en-IN')} | {totalChips.toLocaleString('en-IN')} chips
         </p>
       </div>
       

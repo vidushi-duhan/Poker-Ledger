@@ -20,6 +20,7 @@ export const games = pgTable("games", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: timestamp("date").notNull().defaultNow(),
   defaultBuyIn: integer("default_buy_in").notNull().default(500),
+  chipsPerBuyIn: integer("chips_per_buy_in").notNull().default(2000),
   status: text("status").notNull().default("active"), // 'active' | 'settling' | 'completed'
   totalPot: integer("total_pot").notNull().default(0),
   completedAt: timestamp("completed_at"), // When the game was completed
@@ -36,7 +37,8 @@ export const gamePlayers = pgTable("game_players", {
   gameId: varchar("game_id").notNull().references(() => games.id, { onDelete: "cascade" }),
   playerId: varchar("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
   buyInCount: integer("buy_in_count").notNull().default(1),
-  finalAmount: integer("final_amount"), // Amount player has at end (can be negative/positive)
+  finalChips: integer("final_chips"), // Amount of chips player has at end
+  finalAmount: integer("final_amount"), // Calculated monetary value
   netResult: integer("net_result"), // finalAmount - (buyInCount * defaultBuyIn)
 });
 
@@ -82,6 +84,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
 
 export const insertGameSchema = createInsertSchema(games).pick({
   defaultBuyIn: true,
+  chipsPerBuyIn: true,
 });
 
 export const insertGamePlayerSchema = createInsertSchema(gamePlayers).pick({

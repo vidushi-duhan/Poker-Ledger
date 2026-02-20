@@ -26,21 +26,18 @@ export function AmountInput({
           {playerName}
         </Label>
         <span className="text-sm text-muted-foreground">
-          Bought in: ₹{totalBuyIn.toLocaleString('en-IN')}
+          Buy-in: {totalBuyIn.toLocaleString('en-IN')} chips
         </span>
       </div>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-          ₹
-        </span>
         <Input
           id={`amount-${playerId}`}
           type="number"
           inputMode="numeric"
-          placeholder="Ending amount"
+          placeholder="Ending chips"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-12 text-lg text-right pl-8 pr-4"
+          className="h-12 text-lg text-right px-4"
           data-testid={`input-final-amount-${playerId}`}
         />
       </div>

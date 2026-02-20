@@ -19,7 +19,7 @@ interface FinalAmounts {
 export default function SettlePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [finalAmounts, setFinalAmounts] = useState<FinalAmounts>({});
+  const [finalChips, setFinalChips] = useState<FinalAmounts>({});
   const [calculatedSettlements, setCalculatedSettlements] = useState<SettlementWithPlayers[]>([]);
   const [showSettlements, setShowSettlements] = useState(false);
 
@@ -28,8 +28,8 @@ export default function SettlePage() {
   });
 
   const completeGameMutation = useMutation({
-    mutationFn: async (data: { gameId: string; finalAmounts: { playerId: string; finalAmount: number }[] }) => {
-      return apiRequest("POST", `/api/games/${data.gameId}/complete`, { finalAmounts: data.finalAmounts });
+    mutationFn: async (data: { gameId: string; finalChips: { playerId: string; chips: number }[] }) => {
+      return apiRequest("POST", `/api/games/${data.gameId}/complete`, { finalChips: data.finalChips });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games/active"] });
@@ -45,48 +45,50 @@ export default function SettlePage() {
   });
 
   const handleAmountChange = (playerId: string, value: string) => {
-    setFinalAmounts((prev) => ({ ...prev, [playerId]: value }));
+    setFinalChips((prev) => ({ ...prev, [playerId]: value }));
     setShowSettlements(false);
   };
 
-  const totalBuyIns = useMemo(() => {
+  const totalBuyInChips = useMemo(() => {
     if (!activeGame) return 0;
     return activeGame.gamePlayers.reduce(
-      (sum, gp) => sum + gp.buyInCount * activeGame.defaultBuyIn,
+      (sum, gp) => sum + gp.buyInCount * activeGame.chipsPerBuyIn,
       0
     );
   }, [activeGame]);
 
-  const totalFinalAmounts = useMemo(() => {
-    return Object.values(finalAmounts).reduce((sum, val) => {
+  const totalFinalChips = useMemo(() => {
+    return Object.values(finalChips).reduce((sum, val) => {
       const num = parseInt(val, 10);
       return sum + (isNaN(num) ? 0 : num);
     }, 0);
-  }, [finalAmounts]);
+  }, [finalChips]);
 
   const allPlayersEntered = useMemo(() => {
     if (!activeGame) return false;
     return activeGame.gamePlayers.every(
-      (gp) => finalAmounts[gp.playerId] !== undefined && finalAmounts[gp.playerId] !== ""
+      (gp) => finalChips[gp.playerId] !== undefined && finalChips[gp.playerId] !== ""
     );
-  }, [activeGame, finalAmounts]);
+  }, [activeGame, finalChips]);
 
-  const isBalanced = totalBuyIns === totalFinalAmounts;
+  const isBalanced = totalBuyInChips === totalFinalChips;
 
   const calculateSettlements = () => {
     if (!activeGame || !allPlayersEntered || !isBalanced) return;
 
+    const conversionRatio = activeGame.chipsPerBuyIn / activeGame.defaultBuyIn;
     const playerBalances: { playerId: string; playerName: string; balance: number }[] = [];
 
     activeGame.gamePlayers.forEach((gp) => {
-      const totalBuyIn = gp.buyInCount * activeGame.defaultBuyIn;
-      const finalAmount = parseInt(finalAmounts[gp.playerId], 10);
-      const netResult = finalAmount - totalBuyIn;
+      const totalBuyInMoney = gp.buyInCount * activeGame.defaultBuyIn;
+      const chips = parseInt(finalChips[gp.playerId], 10);
+      const moneyValue = chips / conversionRatio;
+      const netResult = moneyValue - totalBuyInMoney;
 
       playerBalances.push({
         playerId: gp.playerId,
         playerName: gp.player.name,
-        balance: netResult,
+        balance: Math.round(netResult),
       });
     });
 
@@ -132,14 +134,14 @@ export default function SettlePage() {
   const handleCompleteGame = () => {
     if (!activeGame) return;
 
-    const finalAmountsData = Object.entries(finalAmounts).map(([playerId, amount]) => ({
+    const finalChipsData = Object.entries(finalChips).map(([playerId, chips]) => ({
       playerId,
-      finalAmount: parseInt(amount, 10),
+      chips: parseInt(chips, 10),
     }));
 
     completeGameMutation.mutate({
       gameId: activeGame.id,
-      finalAmounts: finalAmountsData,
+      finalChips: finalChipsData,
     });
   };
 
@@ -173,54 +175,54 @@ export default function SettlePage() {
       <div>
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Settlement</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter the ending amount each player has
+          Enter the ending chips amount each player has
         </p>
       </div>
 
       <Card className="p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Total Buy-ins</p>
+            <p className="text-sm text-muted-foreground">Total Buy-in Chips</p>
             <p className="text-xl font-semibold" data-testid="text-total-buyins">
-              <span className="opacity-70">₹</span>{totalBuyIns.toLocaleString('en-IN')}
+              {totalBuyInChips.toLocaleString('en-IN')}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Ending Total</p>
+            <p className="text-sm text-muted-foreground">Ending Total Chips</p>
             <p 
               className={`text-xl font-semibold ${isBalanced ? "text-chart-1" : "text-destructive"}`}
               data-testid="text-final-total"
             >
-              <span className="opacity-70">₹</span>{totalFinalAmounts.toLocaleString('en-IN')}
+              {totalFinalChips.toLocaleString('en-IN')}
             </p>
           </div>
         </div>
         {!isBalanced && allPlayersEntered && (
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border text-sm text-destructive">
             <AlertCircle className="w-4 h-4" />
-            <span>Total amounts don't match. Difference: ₹{Math.abs(totalBuyIns - totalFinalAmounts).toLocaleString('en-IN')}</span>
+            <span>Total chips don't match. Difference: {Math.abs(totalBuyInChips - totalFinalChips).toLocaleString('en-IN')}</span>
           </div>
         )}
         {isBalanced && allPlayersEntered && (
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border text-sm text-chart-1">
             <CheckCircle className="w-4 h-4" />
-            <span>Amounts are balanced!</span>
+            <span>Chips are balanced!</span>
           </div>
         )}
       </Card>
 
       <Card>
         <div className="p-4 border-b border-border">
-          <p className="text-sm font-medium text-muted-foreground">Enter Ending Amounts</p>
+          <p className="text-sm font-medium text-muted-foreground">Enter Ending Chips</p>
         </div>
         {activeGame.gamePlayers.map((gp) => (
           <AmountInput
             key={gp.id}
             playerId={gp.playerId}
             playerName={gp.player.name}
-            value={finalAmounts[gp.playerId] || ""}
+            value={finalChips[gp.playerId] || ""}
             onChange={(value) => handleAmountChange(gp.playerId, value)}
-            totalBuyIn={gp.buyInCount * activeGame.defaultBuyIn}
+            totalBuyIn={gp.buyInCount * activeGame.chipsPerBuyIn}
           />
         ))}
       </Card>
