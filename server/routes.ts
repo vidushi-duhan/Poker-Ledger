@@ -8,6 +8,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check for keep-alive
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
+
   // Players API
   app.get("/api/players", async (_req, res) => {
     try {
