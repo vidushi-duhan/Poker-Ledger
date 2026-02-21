@@ -182,18 +182,18 @@ export default function SettlePage() {
       <Card className="p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Total Buy-in Chips</p>
+            <p className="text-sm text-muted-foreground">Total Buy-in Chips (₹)</p>
             <p className="text-xl font-semibold" data-testid="text-total-buyins">
-              {totalBuyInChips.toLocaleString('en-IN')}
+              {totalBuyInChips.toLocaleString('en-IN')} (₹{(activeGame.gamePlayers.reduce((s, gp) => s + gp.buyInCount * activeGame.defaultBuyIn, 0)).toLocaleString('en-IN')})
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Ending Total Chips</p>
+            <p className="text-sm text-muted-foreground">Ending Total Chips (₹)</p>
             <p 
               className={`text-xl font-semibold ${isBalanced ? "text-chart-1" : "text-destructive"}`}
               data-testid="text-final-total"
             >
-              {totalFinalChips.toLocaleString('en-IN')}
+              {totalFinalChips.toLocaleString('en-IN')} (₹{(totalFinalChips / (activeGame.chipsPerBuyIn / activeGame.defaultBuyIn)).toLocaleString('en-IN')})
             </p>
           </div>
         </div>
@@ -223,6 +223,7 @@ export default function SettlePage() {
             value={finalChips[gp.playerId] || ""}
             onChange={(value) => handleAmountChange(gp.playerId, value)}
             totalBuyIn={gp.buyInCount * activeGame.chipsPerBuyIn}
+            conversionRatio={activeGame.chipsPerBuyIn / activeGame.defaultBuyIn}
           />
         ))}
       </Card>

@@ -15,7 +15,10 @@ export function AmountInput({
   value,
   onChange,
   totalBuyIn,
-}: AmountInputProps) {
+  conversionRatio,
+}: AmountInputProps & { conversionRatio: number }) {
+  const moneyValue = (parseInt(value, 10) || 0) / conversionRatio;
+  
   return (
     <div 
       className="py-3 px-4 border-b border-border last:border-b-0"
@@ -29,7 +32,7 @@ export function AmountInput({
           Buy-in: {totalBuyIn.toLocaleString('en-IN')} chips
         </span>
       </div>
-      <div className="relative">
+      <div className="relative space-y-2">
         <Input
           id={`amount-${playerId}`}
           type="number"
@@ -40,6 +43,11 @@ export function AmountInput({
           className="h-12 text-lg text-right px-4"
           data-testid={`input-final-amount-${playerId}`}
         />
+        {value && !isNaN(parseInt(value, 10)) && (
+          <p className="text-right text-sm font-medium text-muted-foreground">
+            Value: ₹{moneyValue.toLocaleString('en-IN')}
+          </p>
+        )}
       </div>
     </div>
   );
