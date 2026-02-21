@@ -68,6 +68,11 @@ export class DatabaseStorage implements IStorage {
       .set({
         totalBalance: player.totalBalance + balanceChange,
         gamesPlayed: incrementGames ? player.gamesPlayed + 1 : player.gamesPlayed,
+        bestWin: balanceChange > player.bestWin ? balanceChange : player.bestWin,
+        winStreak: balanceChange > 0 ? player.winStreak + 1 : 0,
+        maxWinStreak: (balanceChange > 0 && player.winStreak + 1 > player.maxWinStreak) 
+          ? player.winStreak + 1 
+          : player.maxWinStreak,
       })
       .where(eq(players.id, id))
       .returning();

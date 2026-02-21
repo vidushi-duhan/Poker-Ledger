@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LedgerRow } from "@/components/ledger-row";
 import { EmptyState } from "@/components/empty-state";
-import { BookOpen, TrendingUp, TrendingDown, Users, Calendar } from "lucide-react";
+import { BookOpen, TrendingUp, TrendingDown, Users, Calendar, Trophy, Zap, Target } from "lucide-react";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, format, isBefore, isAfter } from "date-fns";
 import type { Player, GameWithPlayers } from "@shared/schema";
 
@@ -183,6 +183,47 @@ export default function LedgerPage() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Top Winner</span>
+          </div>
+          <p className="text-lg font-bold truncate">
+            {sortedPlayers[0]?.name || "None"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            ₹{(sortedPlayers[0]?.filteredBalance || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+        
+        <Card className="p-4 bg-gradient-to-br from-chart-1/5 to-chart-1/10 border-chart-1/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="w-4 h-4 text-orange-500" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hot Streak</span>
+          </div>
+          <p className="text-lg font-bold truncate">
+            {[...filteredStats].sort((a, b) => b.winStreak - a.winStreak)[0]?.name || "None"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {[...filteredStats].sort((a, b) => b.winStreak - a.winStreak)[0]?.winStreak || 0} wins
+          </p>
+        </Card>
+        
+        <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-blue-500" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Biggest Win</span>
+          </div>
+          <p className="text-lg font-bold truncate">
+            {[...filteredStats].sort((a, b) => b.bestWin - a.bestWin)[0]?.name || "None"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            ₹{([...filteredStats].sort((a, b) => b.bestWin - a.bestWin)[0]?.bestWin || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

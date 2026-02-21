@@ -9,6 +9,9 @@ export const players = pgTable("players", {
   name: text("name").notNull().unique(),
   totalBalance: integer("total_balance").notNull().default(0),
   gamesPlayed: integer("games_played").notNull().default(0),
+  bestWin: integer("best_win").notNull().default(0),
+  winStreak: integer("win_streak").notNull().default(0),
+  maxWinStreak: integer("max_win_streak").notNull().default(0),
 });
 
 export const playersRelations = relations(players, ({ many }) => ({
